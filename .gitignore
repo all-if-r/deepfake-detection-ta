@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+
+# Large Datasets & Processed Images (Do NOT upload to Git)
+FaceForensics++_C23/
+processed_data_uniform/
+processed_data_gfs/
+augmented_data/
+weights/
+CELEBDFv2*
+CODE*/
+
+# Model Checkpoints (Heavy binary files)
+checkpoints/*.pt
+!checkpoints/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Temporary & Cache
+*.log
+src/logs/*.log
+src/logs/run_k1_terminal.log

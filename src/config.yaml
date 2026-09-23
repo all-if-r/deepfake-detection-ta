@@ -1,0 +1,103 @@
+# ==============================================================================
+# KONFIGURASI PIPELINE DETEKSI DEEPFAKE VIDEO (SUBBAB 4.1.1)
+# Tugas Akhir: Deteksi Deepfake Video Menggunakan Golden Frame Selection
+#              dan EfficientNet-CBAM Terintegrasi Non-Local Block
+# ==============================================================================
+
+paths:
+  dataset_root: "FaceForensics++_C23"
+  csv_dir: "FaceForensics++_C23/csv"
+  processed_dir_uniform: "processed_data_uniform"  # Output Uniform Sampling (K1-K4)
+  processed_dir_gfs: "processed_data_gfs"          # Output Golden Frame Selection (K5)
+  processed_dir: "processed_data_uniform"          # Default fallback
+  augmented_dir: "augmented_data"                  # Tempat penyimpanan frame augmentasi kelas real (train only)
+  logs_dir: "src/logs"                             # Output log training dan statistik GFS
+  checkpoints_dir: "checkpoints"                   # Penyimpanan model checkpoint terbaik
+  yolo_model_name: "arnabdhar/YOLOv8-Face-Detection"
+  yolo_weights_cache: "weights/yolov8_face.pt"
+
+# ------------------------------------------------------------------------------
+# 1. GOLDEN FRAME SELECTION (GFS) PARAMETERS (Sesuai Proposal & Bab 3)
+# ------------------------------------------------------------------------------
+gfs:
+  use_gfs: true                            # true = Golden Frame Selection (K5), false = Uniform Sampling (K1-K4)
+  theta_diff: 5.0                          # Threshold ΔF (selisih rata-rata absolut grayscale)
+  sharpness_percentile: 30                 # Persentil P30 untuk sharpness filter dinamis per-video
+  theta_conf: 0.5                          # Threshold confidence deteksi wajah YOLOv8
+  alpha: 0.5                               # Bobot FQS: α * Sharpness_norm + (1-α) * YOLO_conf
+  n_frames: 20                             # Jumlah target golden frame per video
+
+# ------------------------------------------------------------------------------
+# 2. FACE PREPROCESSING PARAMETERS
+# ------------------------------------------------------------------------------
+preprocessing:
+  gamma_padding: 0.20                      # Margin perluasan bounding box (γ = 0.20)
+  target_size: [380, 380]                  # Resolusi kanonik input EfficientNet-B4
+  yolo_conf_thresh: 0.5                    # Threshold confidence deteksi wajah
+
+# ------------------------------------------------------------------------------
+# 3. MINOR CLASS AUGMENTATION (Hanya untuk kelas Real subset Training)
+# ------------------------------------------------------------------------------
+augmentation:
+  rotation_range: [-10.0, 10.0]            # Rentang sudut rotasi acak (±10°)
+  deterministic_flip: true                 # Flip horizontal deterministik (1x per frame)
+  brightness_range: [-15, 15]              # Pergeseran intensitas brightness acak (±15)
+  multiplier: 3                            # 3 varian baru + 1 asli = 4 versi per frame
+
+# ------------------------------------------------------------------------------
+# 4. MODEL ARCHITECTURE
+# ------------------------------------------------------------------------------
+model:
+  backbone: "efficientnet_b4"
+  pretrained: true
+  freeze_stages: [1, 2, 3, 4]              # Stage 1-4 dibekukan (frozen)
+  train_stages: [5, 6, 7]                  # Stage 5-7 dilatih ulang (fine-tuned)
+  use_cbam: true                           # Flag modul CBAM (true = aktif, false = nonaktif)
+  cbam_stages: [5, 6, 7]                   # CBAM disisipkan di stage 5, 6, dan 7
+  cbam_reduction_ratio: 16                 # Reduction ratio r = 16 pada CBAM
+  use_non_local: true                      # Non-Local Block di akhir stage 7 (sebelum GAP)
+  dropout_rate: 0.5                        # Dropout rate di classifier head
+  num_classes: 2                           # Biner: 0 = Real, 1 = Fake
+  decision_threshold: 0.5                  # Threshold klasifikasi kelas Fake
+
+# ------------------------------------------------------------------------------
+# 5. DATASET & SPLIT
+# ------------------------------------------------------------------------------
+dataset:
+  train_video_ratio: 720                   # 720 video train (Real & per Fake method)
+  val_video_ratio: 140                     # 140 video val
+  test_video_ratio: 140                    # 140 video test
+  num_workers: 4                           # Worker DataLoader (sesuaikan CPU)
+  pin_memory: true
+
+# ------------------------------------------------------------------------------
+# 6. TRAINING HYPERPARAMETERS (TENTATIF - Sesuai Proposal / Desain Bab 3.7 & 3.8)
+# CATATAN: Nilai di bawah ini adalah estimasi awal untuk GPU 4GB VRAM dan akan
+# dikonfirmasi ulang sebelum full run. Skema 1-fase (Stage 5-7 + Head langsung aktif).
+# ------------------------------------------------------------------------------
+train:
+  # Optimasi Memori untuk VRAM 4GB (NVIDIA GeForce GTX 1650 Ti)
+  batch_size: 8                            # Sesuaikan ke 4 jika terjadi spike VRAM
+  grad_accum_steps: 4                      # Effective batch size = batch_size * grad_accum_steps = 32
+  use_amp: true                            # Automatic Mixed Precision (FP16) via PyTorch AMP
+
+  # Optimizer & Learning Rates (Differential LR)
+  optimizer: "Adam"
+  lr_backbone: 1.0e-5                      # Learning rate untuk Stage 5-7 + CBAM + Non-Local
+  lr_head: 1.0e-4                          # Learning rate untuk Classifier Head
+  betas: [0.9, 0.999]
+  eps: 1.0e-8
+  weight_decay: 0.0                        # 0 (regularisasi utama via Dropout 0.5 di head)
+
+  # Scheduler & Early Stopping
+  max_epochs: 100
+  early_stopping_patience: 15              # Berhenti jika val_loss tidak membaik setelah 15 epoch
+  scheduler:
+    name: "ReduceLROnPlateau"
+    mode: "min"
+    factor: 0.1                            # Reduksi LR sebesar 10x
+    patience: 5                            # Reduksi jika val_loss stagnan selama 5 epoch
+    min_lr: 1.0e-7
+
+  # Reproducibility
+  seed: 42

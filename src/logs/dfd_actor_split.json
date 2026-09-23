@@ -1,0 +1,81 @@
+{
+    "allocation": {
+        "01": "train",
+        "02": "train",
+        "03": "train",
+        "04": "train",
+        "06": "train",
+        "07": "train",
+        "09": "train",
+        "11": "train",
+        "12": "train",
+        "13": "train",
+        "14": "train",
+        "15": "train",
+        "18": "train",
+        "20": "train",
+        "21": "train",
+        "25": "train",
+        "26": "train",
+        "27": "train",
+        "05": "val",
+        "08": "val",
+        "16": "val",
+        "17": "val",
+        "28": "val",
+        "10": "test",
+        "19": "test",
+        "22": "test",
+        "23": "test",
+        "24": "test"
+    },
+    "summary": {
+        "train_actors": 18,
+        "train_videos": 838,
+        "val_actors": 5,
+        "val_videos": 63,
+        "test_actors": 5,
+        "test_videos": 99,
+        "total_videos": 1000,
+        "train_pct": 83.8,
+        "val_pct": 6.3,
+        "test_pct": 9.9,
+        "mismatches": 0
+    },
+    "components": {
+        "train_group": [
+            "01",
+            "02",
+            "03",
+            "04",
+            "06",
+            "07",
+            "09",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15",
+            "18",
+            "20",
+            "21",
+            "25",
+            "26",
+            "27"
+        ],
+        "val_group": [
+            "05",
+            "08",
+            "16",
+            "17",
+            "28"
+        ],
+        "test_group": [
+            "10",
+            "19",
+            "22",
+            "23",
+            "24"
+        ]
+    }
+}
