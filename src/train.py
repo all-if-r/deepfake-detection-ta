@@ -246,8 +246,7 @@ def train_pipeline(
         mode=sched_cfg["mode"],
         factor=float(sched_cfg["factor"]),
         patience=int(sched_cfg["patience"]),
-        min_lr=float(sched_cfg["min_lr"]),
-        verbose=True
+        min_lr=float(sched_cfg["min_lr"])
     )
 
     use_amp = bool(cfg["train"]["use_amp"])
