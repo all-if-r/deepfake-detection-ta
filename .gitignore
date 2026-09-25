@@ -29,6 +29,12 @@ checkpoints/*.pt
 Thumbs.db
 *.swp
 
+# Kaggle and Virtual Environments
+.venv-kaggle/
+kaggle_dataset_uniform/
+*.docx
+src/logs/proposal_extracted_text.txt
+
 # Temporary & Cache
 *.log
 src/logs/*.log
