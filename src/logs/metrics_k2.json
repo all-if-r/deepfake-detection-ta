@@ -1,0 +1,26 @@
+{
+    "config_name": "k2",
+    "checkpoint": "checkpoints/k2_best.pt",
+    "num_test_samples": 19004,
+    "accuracy": 0.9362,
+    "precision": 0.9715,
+    "recall": 0.9529,
+    "f1_score": 0.9621,
+    "auc_roc": 0.9719,
+    "confusion_matrix": {
+        "tn": 2388,
+        "fp": 452,
+        "fn": 761,
+        "tp": 15403,
+        "raw_matrix": [
+            [
+                2388,
+                452
+            ],
+            [
+                761,
+                15403
+            ]
+        ]
+    }
+}
