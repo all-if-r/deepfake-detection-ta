@@ -181,7 +181,8 @@ def train_pipeline(
     custom_data_dir: Optional[str] = None,
     custom_batch_size: Optional[int] = None,
     custom_num_workers: Optional[int] = None,
-    resume_checkpoint_path: Optional[str] = None
+    resume_checkpoint_path: Optional[str] = None,
+    custom_use_amp: Optional[bool] = None
 ):
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
@@ -249,7 +250,16 @@ def train_pipeline(
         min_lr=float(sched_cfg["min_lr"])
     )
 
-    use_amp = bool(cfg["train"]["use_amp"])
+    # Penentuan flag use_amp:
+    # K3 dilatih dengan FP32 (AMP dinonaktifkan) untuk stabilitas numerik Non-Local
+    if custom_use_amp is not None:
+        use_amp = bool(custom_use_amp)
+    elif cfg_lower == "k3":
+        use_amp = False
+    else:
+        use_amp = bool(cfg["train"]["use_amp"])
+
+    print(f"[Pipeline] Mode Presisi: {'AMP (FP16)' if use_amp else 'FP32 (AMP Dinonaktifkan)'}")
     scaler = GradScaler(enabled=use_amp and device.type == "cuda")
     grad_accum_steps = int(cfg["train"]["grad_accum_steps"])
 
@@ -452,6 +462,8 @@ if __name__ == "__main__":
     parser.add_argument("--batch-size", type=int, default=None, help="Override batch size DataLoader")
     parser.add_argument("--num-workers", type=int, default=None, help="Override DataLoader num_workers")
     parser.add_argument("--resume-from", type=str, default=None, help="Path spesifik ke file checkpoint {config}_latest.pt untuk resume (e.g. dari output sesi Kaggle sebelumnya)")
+    parser.add_argument("--use-amp", dest="use_amp", action="store_true", default=None, help="Paksa aktifkan AMP (FP16)")
+    parser.add_argument("--no-amp", dest="use_amp", action="store_false", help="Paksa nonaktifkan AMP (jalankan FP32)")
     args = parser.parse_args()
 
     train_pipeline(
@@ -466,5 +478,6 @@ if __name__ == "__main__":
         custom_data_dir=args.data_dir,
         custom_batch_size=args.batch_size,
         custom_num_workers=args.num_workers,
-        resume_checkpoint_path=args.resume_from
+        resume_checkpoint_path=args.resume_from,
+        custom_use_amp=args.use_amp
     )

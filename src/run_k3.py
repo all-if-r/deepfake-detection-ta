@@ -48,7 +48,7 @@ if __name__ == "__main__":
         print(f"\n[TAHAP 1/3] Menggunakan manifest Uniform yang sudah ada: {manifest_csv}", flush=True)
 
     # 2. Training K3
-    print("\n[TAHAP 2/3] Memulai Training Model K3 (+Non-Local)...", flush=True)
+    print("\n[TAHAP 2/3] Memulai Training Model K3 (+Non-Local, FP32)...", flush=True)
     train_results = train_pipeline(
         config_path=args.config,
         config_name="k3",
@@ -60,7 +60,8 @@ if __name__ == "__main__":
         custom_manifest_path=manifest_csv,
         custom_data_dir=args.data_dir,
         custom_batch_size=args.batch_size,
-        resume_checkpoint_path=args.resume_from
+        resume_checkpoint_path=args.resume_from,
+        custom_use_amp=False
     )
 
     # 3. Evaluasi
