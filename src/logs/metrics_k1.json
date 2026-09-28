@@ -1,0 +1,26 @@
+{
+    "config_name": "k1",
+    "checkpoint": "checkpoints\\k1_best.pt",
+    "num_test_samples": 19004,
+    "accuracy": 0.9337,
+    "precision": 0.9665,
+    "recall": 0.9551,
+    "f1_score": 0.9608,
+    "auc_roc": 0.9691,
+    "confusion_matrix": {
+        "tn": 2305,
+        "fp": 535,
+        "fn": 725,
+        "tp": 15439,
+        "raw_matrix": [
+            [
+                2305,
+                535
+            ],
+            [
+                725,
+                15439
+            ]
+        ]
+    }
+}
