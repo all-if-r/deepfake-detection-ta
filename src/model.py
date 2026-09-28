@@ -94,13 +94,16 @@ class NonLocalBlock(nn.Module):
         self.theta = nn.Conv2d(in_channels, self.inter_channels, kernel_size=1, stride=1, padding=0)
         self.phi = nn.Conv2d(in_channels, self.inter_channels, kernel_size=1, stride=1, padding=0)
 
-        self.W_z = nn.Sequential(
-            nn.Conv2d(self.inter_channels, in_channels, kernel_size=1, stride=1, padding=0),
-            nn.BatchNorm2d(in_channels)
+        self.W_z = nn.Conv2d(
+            self.inter_channels,
+            in_channels,
+            kernel_size=1,
+            stride=1,
+            padding=0
         )
         # Inisialisasi bobot W_z ke nol agar blok awalnya bersifat identity mapping
-        nn.init.constant_(self.W_z[1].weight, 0)
-        nn.init.constant_(self.W_z[1].bias, 0)
+        nn.init.constant_(self.W_z.weight, 0)
+        nn.init.constant_(self.W_z.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, c, h, w = x.size()
@@ -118,7 +121,7 @@ class NonLocalBlock(nn.Module):
         energy = torch.matmul(theta_x, phi_x)
         # Scaling factor 1/sqrt(inter_channels) untuk stabilitas Softmax
         energy = energy / (self.inter_channels ** 0.5)
-        attn = torch.softmax(energy, dim=-1)
+        attn = torch.softmax(energy.float(), dim=-1).to(g_x.dtype)
 
         # Matmul attn @ g_x -> (B, H*W, inter_c) -> permute back to (B, inter_c, H, W)
         y = torch.matmul(attn, g_x).permute(0, 2, 1).contiguous().view(b, self.inter_channels, h, w)
