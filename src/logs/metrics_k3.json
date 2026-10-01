@@ -1,0 +1,26 @@
+{
+    "config_name": "k3",
+    "checkpoint": "checkpoints/k3_best.pt",
+    "num_test_samples": 19004,
+    "accuracy": 0.9298,
+    "precision": 0.9654,
+    "recall": 0.9516,
+    "f1_score": 0.9584,
+    "auc_roc": 0.9656,
+    "confusion_matrix": {
+        "tn": 2288,
+        "fp": 552,
+        "fn": 783,
+        "tp": 15381,
+        "raw_matrix": [
+            [
+                2288,
+                552
+            ],
+            [
+                783,
+                15381
+            ]
+        ]
+    }
+}
