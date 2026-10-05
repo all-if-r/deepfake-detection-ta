@@ -1,0 +1,26 @@
+{
+    "config_name": "k5",
+    "checkpoint": "checkpoints\\k5_best.pt",
+    "num_test_samples": 4861,
+    "accuracy": 0.9048,
+    "precision": 0.9399,
+    "recall": 0.952,
+    "f1_score": 0.9459,
+    "auc_roc": 0.9139,
+    "confusion_matrix": {
+        "tn": 349,
+        "fp": 259,
+        "fn": 204,
+        "tp": 4049,
+        "raw_matrix": [
+            [
+                349,
+                259
+            ],
+            [
+                204,
+                4049
+            ]
+        ]
+    }
+}
