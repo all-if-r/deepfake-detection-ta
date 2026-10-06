@@ -22,6 +22,7 @@ from sklearn.metrics import (
     recall_score,
     f1_score,
     roc_auc_score,
+    roc_curve,
     confusion_matrix
 )
 
@@ -187,7 +188,7 @@ def evaluate_checkpoint(
     y_pred = np.array(y_pred_list)
     y_prob = np.array(y_prob_fake_list)
 
-    # 4. Perhitungan Metrik Evaluasi
+    # 4. Perhitungan Metrik Evaluasi (Default Threshold 0.5)
     acc = float(accuracy_score(y_true, y_pred))
     prec = float(precision_score(y_true, y_pred, zero_division=0))
     rec = float(recall_score(y_true, y_pred, zero_division=0))
@@ -204,6 +205,28 @@ def evaluate_checkpoint(
     else:
         tn = fp = fn = tp = 0
 
+    # 4b. Perhitungan Optimal Decision Threshold (Youden's J Index)
+    try:
+        fpr, tpr, roc_thresholds = roc_curve(y_true, y_prob)
+        j_scores = tpr - fpr
+        best_j_idx = int(np.argmax(j_scores))
+        opt_thresh = float(roc_thresholds[best_j_idx])
+        if opt_thresh > 1.0 or opt_thresh < 0.0:
+            opt_thresh = 0.5
+    except Exception:
+        opt_thresh = 0.5
+
+    y_pred_opt = (y_prob >= opt_thresh).astype(int)
+    acc_opt = float(accuracy_score(y_true, y_pred_opt))
+    prec_opt = float(precision_score(y_true, y_pred_opt, zero_division=0))
+    rec_opt = float(recall_score(y_true, y_pred_opt, zero_division=0))
+    f1_opt = float(f1_score(y_true, y_pred_opt, zero_division=0))
+    cm_opt = confusion_matrix(y_true, y_pred_opt)
+    if cm_opt.shape == (2, 2):
+        tn_opt, fp_opt, fn_opt, tp_opt = cm_opt.ravel()
+    else:
+        tn_opt = fp_opt = fn_opt = tp_opt = 0
+
     results = {
         "config_name": config_name.lower(),
         "checkpoint": checkpoint_path,
@@ -219,6 +242,20 @@ def evaluate_checkpoint(
             "fn": int(fn),
             "tp": int(tp),
             "raw_matrix": cm.tolist()
+        },
+        "optimal_threshold_tuning": {
+            "optimal_threshold": round(opt_thresh, 4),
+            "accuracy": round(acc_opt, 4),
+            "precision": round(prec_opt, 4),
+            "recall": round(rec_opt, 4),
+            "f1_score": round(f1_opt, 4),
+            "confusion_matrix": {
+                "tn": int(tn_opt),
+                "fp": int(fp_opt),
+                "fn": int(fn_opt),
+                "tp": int(tp_opt),
+                "raw_matrix": cm_opt.tolist()
+            }
         }
     }
 
@@ -228,19 +265,28 @@ def evaluate_checkpoint(
     with open(out_json_path, "w") as f:
         json.dump(results, f, indent=4)
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 65)
     print(f"HASIL EVALUASI KONFIGURASI: {config_name.upper()}")
-    print("=" * 60)
-    print(f"File Checkpoint     : {checkpoint_path}")
-    print(f"Jumlah Sampel Uji   : {len(y_true)}")
-    print(f"Accuracy            : {acc * 100:.2f}%")
-    print(f"Precision           : {prec * 100:.2f}%")
-    print(f"Recall              : {rec * 100:.2f}%")
-    print(f"F1-Score            : {f1 * 100:.2f}%")
-    print(f"AUC-ROC             : {auc:.4f}")
-    print(f"Confusion Matrix    : TN={tn}, FP={fp}, FN={fn}, TP={tp}")
-    print(f"Hasil disimpan ke   : {out_json_path}")
-    print("=" * 60 + "\n")
+    print("=" * 65)
+    print(f"File Checkpoint       : {checkpoint_path}")
+    print(f"Jumlah Sampel Uji     : {len(y_true)}")
+    print(f"AUC-ROC               : {auc:.4f}")
+    print("-" * 65)
+    print(f"[Default Threshold = 0.50]")
+    print(f"Accuracy              : {acc * 100:.2f}%")
+    print(f"Precision             : {prec * 100:.2f}%")
+    print(f"Recall                : {rec * 100:.2f}%")
+    print(f"F1-Score              : {f1 * 100:.2f}%")
+    print(f"Confusion Matrix      : TN={tn}, FP={fp}, FN={fn}, TP={tp}")
+    print("-" * 65)
+    print(f"[Optimal Threshold = {opt_thresh:.4f} (Youden's J Index)]")
+    print(f"Accuracy (Optimized)  : {acc_opt * 100:.2f}%")
+    print(f"Precision (Optimized) : {prec_opt * 100:.2f}%")
+    print(f"Recall (Optimized)    : {rec_opt * 100:.2f}%")
+    print(f"F1-Score (Optimized)  : {f1_opt * 100:.2f}%")
+    print(f"Confusion Matrix      : TN={tn_opt}, FP={fp_opt}, FN={fn_opt}, TP={tp_opt}")
+    print(f"Hasil disimpan ke     : {out_json_path}")
+    print("=" * 65 + "\n")
 
     return results
 

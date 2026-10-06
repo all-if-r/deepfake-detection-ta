@@ -21,6 +21,8 @@ CODE*/
 # Model Checkpoints (Heavy binary files)
 checkpoints/*.pt
 !checkpoints/.gitkeep
+k5_optimized/*.pt
+k5_optimized/processed_data/
 
 # IDE & OS
 .vscode/
@@ -39,3 +41,9 @@ src/logs/proposal_extracted_text.txt
 *.log
 src/logs/*.log
 src/logs/run_k1_terminal.log
+
+k5_optimized_dataset.zip
+
+k5_optimized/manifest_gfs.csv
+src/logs/manifest_gfs.csv
+src/logs/processed_samples_manifest.csv

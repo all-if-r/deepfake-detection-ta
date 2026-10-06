@@ -13,13 +13,17 @@ import seaborn as sns
 from typing import Optional
 
 
-def plot_training_curves(history_csv: str = "src/logs/training_history.csv", output_dir: str = "src/logs"):
+def plot_training_curves(history_csv: str = "src/logs/training_history_k5.csv", output_dir: str = "src/logs"):
     """
     Tugas 7: Menghasilkan kurva Loss dan Accuracy Training vs Validation.
     """
     if not os.path.exists(history_csv):
-        print(f"[Plot] File history tidak ditemukan: {history_csv}")
-        return
+        fallback = os.path.join(output_dir, "training_history_k5.csv")
+        if os.path.exists(fallback):
+            history_csv = fallback
+        else:
+            print(f"[Plot] File history tidak ditemukan: {history_csv}")
+            return
 
     df = pd.read_csv(history_csv)
     os.makedirs(output_dir, exist_ok=True)

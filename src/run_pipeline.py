@@ -26,7 +26,11 @@ def run_gfs_and_preprocessing(
     config_path: str = "src/config.yaml",
     max_videos_per_cat: int = None,
     target_split: str = None,
-    use_gfs: bool = None
+    use_gfs: bool = None,
+    custom_processed_dir: str = None,
+    custom_logs_dir: str = None,
+    custom_manifest_name: str = None,
+    custom_stats_name: str = None
 ):
     with open(config_path, "r") as f:
         cfg = yaml.safe_load(f)
@@ -38,13 +42,13 @@ def run_gfs_and_preprocessing(
     print(f"[Pipeline] Metode frame selection: {method_name}")
 
     if use_gfs:
-        processed_dir = cfg["paths"].get("processed_dir_gfs", "processed_data_gfs")
-        manifest_filename = "manifest_gfs.csv"
-        gfs_stats_filename = "gfs_statistics.csv"
+        processed_dir = custom_processed_dir if custom_processed_dir else cfg["paths"].get("processed_dir_gfs", "processed_data_gfs")
+        manifest_filename = custom_manifest_name if custom_manifest_name else "manifest_gfs.csv"
+        gfs_stats_filename = custom_stats_name if custom_stats_name else "gfs_statistics.csv"
     else:
-        processed_dir = cfg["paths"].get("processed_dir_uniform", "processed_data_uniform")
-        manifest_filename = "manifest_uniform.csv"
-        gfs_stats_filename = "uniform_statistics.csv"
+        processed_dir = custom_processed_dir if custom_processed_dir else cfg["paths"].get("processed_dir_uniform", "processed_data_uniform")
+        manifest_filename = custom_manifest_name if custom_manifest_name else "manifest_uniform.csv"
+        gfs_stats_filename = custom_stats_name if custom_stats_name else "uniform_statistics.csv"
 
     augmented_dir = cfg["paths"]["augmented_dir"]
     os.makedirs(processed_dir, exist_ok=True)
@@ -66,7 +70,7 @@ def run_gfs_and_preprocessing(
     augmentor = MinorClassAugmentor(config_path=config_path)
 
     # Inisialisasi daftar sampel & statistik (dengan dukungan Resume)
-    logs_dir = cfg["paths"]["logs_dir"]
+    logs_dir = custom_logs_dir if custom_logs_dir else cfg["paths"]["logs_dir"]
     os.makedirs(logs_dir, exist_ok=True)
     manifest_csv = os.path.join(logs_dir, manifest_filename)
     gfs_stats_csv = os.path.join(logs_dir, gfs_stats_filename)
@@ -188,7 +192,7 @@ def run_gfs_and_preprocessing(
                 pd.DataFrame(processed_samples).to_csv(manifest_csv, index=False)
 
     # Simpan statistik GFS / Uniform
-    logs_dir = cfg["paths"]["logs_dir"]
+    logs_dir = custom_logs_dir if custom_logs_dir else cfg["paths"]["logs_dir"]
     os.makedirs(logs_dir, exist_ok=True)
     gfs_stats_csv = os.path.join(logs_dir, gfs_stats_filename)
     export_gfs_statistics(all_gfs_stats, gfs_stats_csv)
@@ -197,9 +201,10 @@ def run_gfs_and_preprocessing(
     manifest_csv = os.path.join(logs_dir, manifest_filename)
     df_samples = pd.DataFrame(processed_samples)
     df_samples.to_csv(manifest_csv, index=False)
-    # Simpan juga ke processed_samples_manifest.csv sebagai fallback
-    fallback_manifest = os.path.join(logs_dir, "processed_samples_manifest.csv")
-    df_samples.to_csv(fallback_manifest, index=False)
+    # Simpan juga ke processed_samples_manifest.csv sebagai fallback jika default logs dir
+    if not custom_logs_dir:
+        fallback_manifest = os.path.join(logs_dir, "processed_samples_manifest.csv")
+        df_samples.to_csv(fallback_manifest, index=False)
     print(f"[Preproc] Manifest sampel berhasil disimpan ke: {manifest_csv}")
     print(f"Total frame wajah tersimpan: {len(processed_samples)}")
 

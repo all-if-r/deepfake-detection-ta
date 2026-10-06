@@ -1,0 +1,12 @@
+Metrik,Nilai
+Total Video Dievaluasi,7000.0
+Total Frame Dianalisis,3582580.0
+Rata-rata Frame/Video,511.79714285714283
+Total Frame Lolos Tahap 1 (ΔF),207190.0
+Total Frame Gagal Tahap 1 (ΔF),3375390.0
+Rasio Lolos Tahap 1 (%),5.783262341664387
+Total Frame Lolos Tahap 2 (Sharpness+YOLO),145513.0
+Total Frame Gagal Tahap 2,61677.0
+Rasio Lolos Tahap 2 dari Tahap 1 (%),70.23167141271297
+Jumlah Video Terpicu Fallback,6037.0
+Persentase Video Terpicu Fallback (%),86.24285714285715

@@ -21,7 +21,7 @@ paths:
 # ------------------------------------------------------------------------------
 gfs:
   use_gfs: true                            # true = Golden Frame Selection (K5), false = Uniform Sampling (K1-K4)
-  theta_diff: 5.0                          # Threshold ΔF (selisih rata-rata absolut grayscale)
+  theta_diff: 1.5                          # Threshold ΔF (disesuaikan ke 1.5 untuk video talking heads FF++)
   sharpness_percentile: 30                 # Persentil P30 untuk sharpness filter dinamis per-video
   theta_conf: 0.5                          # Threshold confidence deteksi wajah YOLOv8
   alpha: 0.5                               # Bobot FQS: α * Sharpness_norm + (1-α) * YOLO_conf

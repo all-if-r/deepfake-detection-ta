@@ -101,64 +101,49 @@ class GoldenFrameSelector:
 
         cap.release()
 
-        # Jika tidak ada frame yang lolos Tahap 1 sama sekali
-        if not t1_passed_frames:
-            stats = {
-                "video_path": video_path,
-                "total_frames": total_frames,
-                "failed_t1": failed_t1_count,
-                "passed_t1": 0,
-                "failed_t2": 0,
-                "passed_t2": 0,
-                "fallback_triggered": False,
-                "selected_count": 0,
-                "selected_indices": []
-            }
-            return [], stats
-
         # -------------------------------------------------------------
         # TAHAP 2: Penyaringan Kualitas Intrinsik (Sharpness & YOLO Confidence)
         # -------------------------------------------------------------
-        # Hitung Sharpness Laplacian untuk seluruh kandidat lolos Tahap 1
-        for item in t1_passed_frames:
-            item["sharpness"] = compute_laplacian_sharpness(item["gray"])
-            
-            # Deteksi wajah & confidence jika detector tersedia
-            if self.yolo_detector is not None:
-                conf, bbox = self.yolo_detector.get_face_confidence_and_box(item["bgr"])
-                item["yolo_conf"] = conf
-                item["bbox"] = bbox
-            else:
-                # Mock / baseline jika detector diinjeksi belakangan
-                item["yolo_conf"] = 1.0
-                item["bbox"] = None
+        t2_passed_frames = []
+        t2_failed_frames = []
+        failed_t2_count = 0
+        passed_t2_count = 0
 
-        sharpness_values = [item["sharpness"] for item in t1_passed_frames]
-        p30_thresh = float(np.percentile(sharpness_values, self.p30_percentile))
-        s_min = float(np.min(sharpness_values))
-        s_max = float(np.max(sharpness_values))
+        if t1_passed_frames:
+            for item in t1_passed_frames:
+                item["sharpness"] = compute_laplacian_sharpness(item["gray"])
+                if self.yolo_detector is not None:
+                    conf, bbox = self.yolo_detector.get_face_confidence_and_box(item["bgr"])
+                    item["yolo_conf"] = conf
+                    item["bbox"] = bbox
+                else:
+                    item["yolo_conf"] = 1.0
+                    item["bbox"] = None
 
-        # Hitung FQS untuk semua frame lolos Tahap 1
-        for item in t1_passed_frames:
-            if s_max > s_min:
-                s_norm = (item["sharpness"] - s_min) / (s_max - s_min)
-            else:
-                s_norm = 1.0
-            item["s_norm"] = s_norm
-            item["fqs"] = self.alpha * s_norm + (1.0 - self.alpha) * item["yolo_conf"]
+            sharpness_values = [item["sharpness"] for item in t1_passed_frames]
+            p30_thresh = float(np.percentile(sharpness_values, self.p30_percentile))
+            s_min = float(np.min(sharpness_values))
+            s_max = float(np.max(sharpness_values))
 
-            # Evaluasi lolos/gagal Tahap 2
-            sharp_pass = item["sharpness"] >= p30_thresh
-            conf_pass = item["yolo_conf"] >= self.theta_conf
-            item["t2_pass"] = bool(sharp_pass and conf_pass)
+            for item in t1_passed_frames:
+                if s_max > s_min:
+                    s_norm = (item["sharpness"] - s_min) / (s_max - s_min)
+                else:
+                    s_norm = 1.0
+                item["s_norm"] = s_norm
+                item["fqs"] = self.alpha * s_norm + (1.0 - self.alpha) * item["yolo_conf"]
 
-        t2_passed_frames = [item for item in t1_passed_frames if item["t2_pass"]]
-        t2_failed_frames = [item for item in t1_passed_frames if not item["t2_pass"]]
-        failed_t2_count = len(t2_failed_frames)
-        passed_t2_count = len(t2_passed_frames)
+                sharp_pass = item["sharpness"] >= p30_thresh
+                conf_pass = item["yolo_conf"] >= self.theta_conf
+                item["t2_pass"] = bool(sharp_pass and conf_pass)
+
+            t2_passed_frames = [item for item in t1_passed_frames if item["t2_pass"]]
+            t2_failed_frames = [item for item in t1_passed_frames if not item["t2_pass"]]
+            failed_t2_count = len(t2_failed_frames)
+            passed_t2_count = len(t2_passed_frames)
 
         # -------------------------------------------------------------
-        # PEMILIHAN N FRAME TERBAIK & MEKANISME FALLBACK
+        # PEMILIHAN N FRAME TERBAIK & MEKANISME FALLBACK (GUARANTEED N=20)
         # -------------------------------------------------------------
         fallback_triggered = False
         if passed_t2_count >= self.n_frames:
@@ -166,12 +151,52 @@ class GoldenFrameSelector:
             t2_passed_frames.sort(key=lambda x: x["fqs"], reverse=True)
             selected = t2_passed_frames[:self.n_frames]
         else:
-            # Fallback terpicu: gabungkan semua frame lolos Tahap 1 (t2_pass + t2_fail)
+            # Fallback Tier 1: gabungkan semua frame lolos Tahap 1 (t2_pass + t2_fail)
             fallback_triggered = True
             pool = list(t1_passed_frames)
             pool.sort(key=lambda x: x["fqs"], reverse=True)
             selected = pool[:self.n_frames]
 
+        # Fallback Tier 2: Jika frame terpilih masih kurang dari target n_frames
+        if len(selected) < self.n_frames and total_frames > 0:
+            fallback_triggered = True
+            needed = self.n_frames - len(selected)
+            existing_indices = set(x["frame_idx"] for x in selected)
+            num_probes = min(total_frames, self.n_frames * 3)
+            probe_indices = np.linspace(0, total_frames - 1, num_probes, dtype=int)
+            candidates = [idx for idx in probe_indices if idx not in existing_indices]
+
+            if candidates:
+                cap_fb = cv2.VideoCapture(video_path)
+                added_frames = []
+                for c_idx in candidates:
+                    cap_fb.set(cv2.CAP_PROP_POS_FRAMES, int(c_idx))
+                    ret_fb, frame_fb = cap_fb.read()
+                    if ret_fb:
+                        gray_fb = cv2.cvtColor(frame_fb, cv2.COLOR_BGR2GRAY)
+                        sharp_fb = compute_laplacian_sharpness(gray_fb)
+                        conf_fb = 1.0
+                        bbox_fb = None
+                        if self.yolo_detector is not None:
+                            conf_fb, bbox_fb = self.yolo_detector.get_face_confidence_and_box(frame_fb)
+                        added_frames.append({
+                            "frame_idx": int(c_idx),
+                            "bgr": frame_fb,
+                            "gray": gray_fb,
+                            "sharpness": sharp_fb,
+                            "yolo_conf": conf_fb,
+                            "bbox": bbox_fb,
+                            "fqs": 0.5 * (sharp_fb / 1000.0) + 0.5 * conf_fb,
+                            "s_norm": 0.5,
+                            "t2_pass": False
+                        })
+                cap_fb.release()
+
+                added_frames.sort(key=lambda x: x["sharpness"], reverse=True)
+                selected.extend(added_frames[:needed])
+
+        # Urutkan berdasarkan frame_idx untuk konsistensi temporal
+        selected.sort(key=lambda x: x["frame_idx"])
         selected_indices = [item["frame_idx"] for item in selected]
 
         stats = {
