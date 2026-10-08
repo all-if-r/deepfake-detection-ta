@@ -1,0 +1,49 @@
+{
+    "config_name": "k5",
+    "checkpoint": "k5_optimized/k5_best.pt",
+    "num_test_samples": 18764,
+    "accuracy": 0.9265,
+    "precision": 0.9667,
+    "recall": 0.9461,
+    "f1_score": 0.9563,
+    "auc_roc": 0.9636,
+    "confusion_matrix": {
+        "tn": 2280,
+        "fp": 520,
+        "fn": 860,
+        "tp": 15104,
+        "raw_matrix": [
+            [
+                2280,
+                520
+            ],
+            [
+                860,
+                15104
+            ]
+        ]
+    },
+    "optimal_threshold_tuning": {
+        "optimal_threshold": 0.8417,
+        "accuracy": 0.8939,
+        "precision": 0.9831,
+        "recall": 0.8906,
+        "f1_score": 0.9346,
+        "confusion_matrix": {
+            "tn": 2556,
+            "fp": 244,
+            "fn": 1747,
+            "tp": 14217,
+            "raw_matrix": [
+                [
+                    2556,
+                    244
+                ],
+                [
+                    1747,
+                    14217
+                ]
+            ]
+        }
+    }
+}
